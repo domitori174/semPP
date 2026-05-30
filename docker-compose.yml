@@ -1,0 +1,34 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+
+  lookup-worker:
+    build: ./lookup_worker
+    environment:
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./breached_hashes.txt:/data/breached_hashes.txt:ro
+    deploy:
+      replicas: 2  # По дефолту запускаем 2 инстанса
+    depends_on:
+      - redis
+
+  audit-consumer:
+    build: ./audit_consumer
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
